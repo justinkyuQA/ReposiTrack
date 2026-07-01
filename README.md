@@ -51,3 +51,16 @@ It watches them.
 ## Status
 
 Version 1.0.0
+
+---
+
+# Screenshots
+
+## Repository Dashboard
+
+![Repository Dashboard](screenshots/Repositrack1.jpeg)
+
+## Report Generation
+
+![Report Generation](screenshots/Repositrack2.jpeg)
+

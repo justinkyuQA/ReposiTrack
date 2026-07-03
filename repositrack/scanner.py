@@ -1,73 +1,52 @@
 from pathlib import Path
 import subprocess
 
-DOC_FILES = [
+
+REQUIRED_DOCS = [
     "README.md",
     "LICENSE",
     "CHANGELOG.md",
     "ROADMAP.md",
     "ARCHITECTURE.md",
-    "CONTRIBUTING.md"
+    "CONTRIBUTING.md",
 ]
 
-def git_output(repo, args):
+
+def git_output(path, *args):
     try:
-        result = subprocess.run(
-            ["git"] + args,
-            cwd=repo,
-            capture_output=True,
+        return subprocess.check_output(
+            ["git", "-C", str(path), *args],
+            stderr=subprocess.DEVNULL,
             text=True,
-            timeout=5
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
+        ).strip()
     except Exception:
-        pass
-    return ""
+        return ""
+
 
 def inspect_repo(path):
 
-    repo = Path(path).expanduser().resolve()
-
-    info = {}
-
-    info["name"] = repo.name
-    info["path"] = str(repo)
-    info["is_git"] = (repo / ".git").exists()
-
-    info["branch"] = ""
-    info["latest_commit"] = ""
-    info["dirty"] = False
-    info["tags"] = ""
-
-    if info["is_git"]:
-        info["branch"] = git_output(repo, ["branch", "--show-current"])
-        info["latest_commit"] = git_output(repo, ["log", "-1", "--pretty=%h %s"])
-        info["dirty"] = bool(git_output(repo, ["status", "--short"]))
-        info["tags"] = git_output(repo, ["tag"])
+    path = Path(path)
 
     docs = {}
+    for doc in REQUIRED_DOCS:
+        docs[doc] = (path / doc).exists()
 
-    for doc in DOC_FILES:
-        docs[doc] = (repo / doc).exists()
-
-    info["docs"] = docs
-
-    info["screenshots"] = (
-        (repo / "screenshots").exists()
-        and any((repo / "screenshots").iterdir())
-    )
+    info = {
+        "name": path.name,
+        "branch": git_output(path, "branch", "--show-current") or "-",
+        "dirty": bool(git_output(path, "status", "--porcelain")),
+        "latest_commit": git_output(path, "log", "-1", "--pretty=%h %s"),
+        "docs": docs,
+        "tags": git_output(path, "tag").splitlines(),
+    }
 
     score = 100
 
-    if not info["is_git"]:
-        score -= 25
-
     if info["dirty"]:
-        score -= 10
-
-    if not info["screenshots"]:
         score -= 5
+
+    if not info["latest_commit"]:
+        score -= 10
 
     if not info["tags"]:
         score -= 5
@@ -85,14 +64,23 @@ def discover_workspace(path):
 
     root = Path(path).expanduser().resolve()
 
+    # If the supplied path is itself a Git repository,
+    # inspect only that repository.
+    if (root / ".git").exists():
+        return [inspect_repo(root)]
+
     repos = []
 
+    # Otherwise inspect immediate child repositories.
     for child in sorted(root.iterdir()):
 
         if not child.is_dir():
             continue
 
         if child.name.startswith("."):
+            continue
+
+        if not (child / ".git").exists():
             continue
 
         repos.append(inspect_repo(child))

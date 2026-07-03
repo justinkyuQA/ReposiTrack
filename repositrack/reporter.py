@@ -1,51 +1,82 @@
 import json
 from pathlib import Path
 
-def print_dashboard(repos):
 
+# ---------------------------
+# Terminal Dashboard
+# ---------------------------
+
+def print_dashboard(repos):
     print()
     print("ReposiTrack Dashboard")
-    print("=" * 60)
+    print("=" * 80)
 
-    print(f"{'Score':<8}{'Repository'}")
-    print("-" * 60)
+    header = f"{'Score':<6} {'Name':<20} {'Branch':<12} {'Dirty':<6} {'Docs':<6}"
+    print(header)
+    print("-" * 80)
 
     for repo in sorted(repos, key=lambda r: r["score"], reverse=True):
-        print(f"{repo['score']:<8}{repo['name']}")
+        docs_ok = sum(1 for v in repo["docs"].values() if v)
+        docs_total = len(repo["docs"])
 
-    print("-" * 60)
-    print("Repositories:", len(repos))
+        print(
+            f"{repo['score']:<6} "
+            f"{repo['name']:<20} "
+            f"{repo['branch'][:12]:<12} "
+            f"{str(repo['dirty']):<6} "
+            f"{docs_ok}/{docs_total:<6}"
+        )
+
+    print("-" * 80)
+    print(f"Repositories : {len(repos)}")
 
     if repos:
-        average = sum(r["score"] for r in repos) / len(repos)
-        print("Average Score:", round(average, 1))
+        avg = sum(r["score"] for r in repos) / len(repos)
+        print(f"Average Score: {round(avg, 1)}")
 
+    print()
+
+
+# ---------------------------
+# Markdown Report
+# ---------------------------
 
 def markdown_report(repos):
-
     lines = []
 
     lines.append("# ReposiTrack Report")
     lines.append("")
 
-    lines.append("| Score | Repository |")
-    lines.append("|------:|------------|")
+    lines.append("| Score | Name | Branch | Dirty | Docs |")
+    lines.append("|------:|------|--------|-------|------|")
 
     for repo in sorted(repos, key=lambda r: r["score"], reverse=True):
-        lines.append(f"| {repo['score']} | {repo['name']} |")
+        docs_ok = sum(1 for v in repo["docs"].values() if v)
+        docs_total = len(repo["docs"])
+
+        lines.append(
+            f"| {repo['score']} | "
+            f"{repo['name']} | "
+            f"{repo['branch']} | "
+            f"{repo['dirty']} | "
+            f"{docs_ok}/{docs_total} |"
+        )
 
     return "\n".join(lines)
 
 
-def save_reports(repos):
+# ---------------------------
+# JSON + Markdown Save
+# ---------------------------
 
+def save_reports(repos):
     out = Path("reports")
     out.mkdir(exist_ok=True)
 
-    md = out / "repositrack_report.md"
-    js = out / "repositrack_report.json"
+    md_path = out / "repositrack_report.md"
+    json_path = out / "repositrack_report.json"
 
-    md.write_text(markdown_report(repos))
-    js.write_text(json.dumps(repos, indent=2))
+    md_path.write_text(markdown_report(repos))
+    json_path.write_text(json.dumps(repos, indent=2))
 
-    return md, js
+    return md_path, json_path

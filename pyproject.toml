@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "repositrack"
+version = "1.0.0"
+description = "Repository workspace dashboard and auditing utility."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+
+authors = [
+    {name = "Justin Kyu"}
+]
+
+dependencies = []
+
+[project.scripts]
+repositrack = "repositrack.main:main"
+
+[tool.setuptools]
+packages = ["repositrack"]
